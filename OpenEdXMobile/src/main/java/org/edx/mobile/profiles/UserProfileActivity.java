@@ -24,7 +24,7 @@ public class UserProfileActivity extends BaseSingleFragmentActivity {
         super.onCreate(savedInstanceState);
 
         if (getIntent().getBooleanExtra(EXTRA_SHOW_NAVIGATION_DRAWER, false)) {
-            configureDrawer();
+            configureHomeButton();
         } else {
             blockDrawerFromOpening();
         }

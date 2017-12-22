@@ -17,7 +17,7 @@ public class AccountActivity extends BaseSingleFragmentActivity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        configureDrawer();
+        configureHomeButton();
     }
 
     @Override

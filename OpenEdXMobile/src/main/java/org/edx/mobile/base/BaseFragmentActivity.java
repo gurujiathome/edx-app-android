@@ -12,6 +12,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
@@ -28,6 +29,7 @@ import org.edx.mobile.interfaces.NetworkObserver;
 import org.edx.mobile.interfaces.NetworkSubject;
 import org.edx.mobile.interfaces.OnActivityResultListener;
 import org.edx.mobile.logger.Logger;
+import org.edx.mobile.module.prefs.LoginPrefs;
 import org.edx.mobile.util.NetworkUtil;
 import org.edx.mobile.util.ViewAnimationUtil;
 import org.edx.mobile.view.ICommonUI;
@@ -47,6 +49,9 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
     private boolean isConnectedToWifi = false;
     private boolean isActivityStarted = false;
     protected ActionBarDrawerToggle mDrawerToggle;
+
+    @Inject
+    private LoginPrefs loginPrefs;
 
     @Inject
     protected IEdxEnvironment environment;
@@ -81,6 +86,18 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
     @Override
     protected void onCreate(Bundle arg0) {
         super.onCreate(arg0);
+        configureActionBar();
+    }
+
+    protected void setToolbar() {
+        final View toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null && toolbar instanceof Toolbar) {
+            setSupportActionBar((Toolbar) toolbar);
+        }
+        configureActionBar();
+    }
+
+    private void configureActionBar() {
         ActionBar bar = getSupportActionBar();
         if (bar != null) {
             bar.setDisplayShowHomeEnabled(true);
@@ -160,7 +177,16 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
     }
 
     //this is configure the Navigation Drawer of the application
-    protected void configureDrawer() {
+    protected void configureHomeButton() {
+        if (environment.getConfig().isTabsLayoutEnabled()) {
+            // TODO: Add profile icon as home button here
+            addDrawer();
+        } else {
+            addDrawer();
+        }
+    }
+
+    private void addDrawer() {
         DrawerLayout mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (mDrawerLayout != null) {
             getSupportFragmentManager().beginTransaction()
@@ -227,6 +253,7 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         switch (item.getItemId()) {
             case android.R.id.home:
                 finish();
+//                environment.getRouter().showUserProfile(this, loginPrefs.getUsername());
                 return true;
         }
 
