@@ -35,6 +35,7 @@ import org.edx.mobile.logger.Logger;
 import org.edx.mobile.model.api.EnrolledCoursesResponse;
 import org.edx.mobile.module.analytics.Analytics;
 import org.edx.mobile.module.prefs.LoginPrefs;
+import org.edx.mobile.util.Config;
 import org.edx.mobile.util.NetworkUtil;
 import org.edx.mobile.view.adapters.MyCoursesAdapter;
 
@@ -289,6 +290,18 @@ public class MyCoursesListFragment extends BaseFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.my_courses, menu);
+        final Config config = environment.getConfig();
+        if (config.isTabsLayoutEnabled()) {
+            menu.findItem(R.id.menu_item_account).setVisible(true);
+            menu.findItem(R.id.menu_item_search).setVisible(false);
+        } else {
+            menu.findItem(R.id.menu_item_account).setVisible(false);
+            if (config.getCourseDiscoveryConfig().isCourseDiscoveryEnabled()) {
+                menu.findItem(R.id.menu_item_search).setVisible(true);
+            } else {
+                menu.findItem(R.id.menu_item_search).setVisible(false);
+            }
+        }
     }
 
     @Override
@@ -297,6 +310,10 @@ public class MyCoursesListFragment extends BaseFragment
             case R.id.menu_item_search: {
                 environment.getAnalyticsRegistry().trackUserFindsCourses();
                 environment.getRouter().showFindCourses(getContext());
+                return true;
+            }
+            case R.id.menu_item_account: {
+                environment.getRouter().showAccountActivity(getActivity());
                 return true;
             }
             default: {

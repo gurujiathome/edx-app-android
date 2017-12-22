@@ -186,7 +186,7 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         }
     }
 
-    private void addDrawer() {
+    protected void addDrawer() {
         DrawerLayout mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (mDrawerLayout != null) {
             getSupportFragmentManager().beginTransaction()
