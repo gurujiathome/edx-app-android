@@ -29,7 +29,6 @@ import org.edx.mobile.interfaces.NetworkObserver;
 import org.edx.mobile.interfaces.NetworkSubject;
 import org.edx.mobile.interfaces.OnActivityResultListener;
 import org.edx.mobile.logger.Logger;
-import org.edx.mobile.module.prefs.LoginPrefs;
 import org.edx.mobile.util.NetworkUtil;
 import org.edx.mobile.util.ViewAnimationUtil;
 import org.edx.mobile.view.ICommonUI;
@@ -49,9 +48,6 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
     private boolean isConnectedToWifi = false;
     private boolean isActivityStarted = false;
     protected ActionBarDrawerToggle mDrawerToggle;
-
-    @Inject
-    private LoginPrefs loginPrefs;
 
     @Inject
     protected IEdxEnvironment environment;
@@ -97,7 +93,7 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         configureActionBar();
     }
 
-    private void configureActionBar() {
+    protected void configureActionBar() {
         ActionBar bar = getSupportActionBar();
         if (bar != null) {
             bar.setDisplayShowHomeEnabled(true);
@@ -176,16 +172,6 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         }
     }
 
-    //this is configure the Navigation Drawer of the application
-    protected void configureHomeButton() {
-        if (environment.getConfig().isTabsLayoutEnabled()) {
-            // TODO: Add profile icon as home button here
-            addDrawer();
-        } else {
-            addDrawer();
-        }
-    }
-
     protected void addDrawer() {
         DrawerLayout mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (mDrawerLayout != null) {
@@ -253,7 +239,6 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         switch (item.getItemId()) {
             case android.R.id.home:
                 finish();
-//                environment.getRouter().showUserProfile(this, loginPrefs.getUsername());
                 return true;
         }
 

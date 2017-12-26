@@ -1,11 +1,15 @@
 package org.edx.mobile.base;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -28,11 +32,26 @@ public abstract class BaseSingleFragmentActivity extends BaseFragmentActivity im
     @Nullable
     TextView centerMessageBox;
 
+    @InjectView(R.id.toolbar_container)
+    @NonNull
+    FrameLayout toolbarContainer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single_fragment_base);
+        addToolbar();
         super.setToolbar();
+    }
+
+    private void addToolbar() {
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        inflater.inflate(getToolbarLayoutId(), toolbarContainer);
+    }
+
+    @LayoutRes
+    protected int getToolbarLayoutId() {
+        return R.layout.toolbar;
     }
 
     @Override

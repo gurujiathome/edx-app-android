@@ -6,6 +6,9 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBar;
+import android.view.View;
+import android.widget.TextView;
 
 import com.google.inject.Inject;
 
@@ -17,6 +20,7 @@ import org.edx.mobile.model.api.EnrolledCoursesResponse;
 import org.edx.mobile.module.analytics.Analytics;
 import org.edx.mobile.module.db.DataCallback;
 import org.edx.mobile.module.notification.NotificationDelegate;
+import org.edx.mobile.module.prefs.LoginPrefs;
 import org.edx.mobile.module.prefs.PrefManager;
 import org.edx.mobile.util.AppConstants;
 import org.edx.mobile.util.AppStoreUtils;
@@ -38,6 +42,9 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
     @Inject
     NotificationDelegate notificationDelegate;
 
+    @Inject
+    private LoginPrefs loginPrefs;
+
     public static Intent newIntent() {
         // These flags will make it so we only have a single instance of this activity,
         // but that instance will not be restarted if it is already running
@@ -48,11 +55,60 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         initWhatsNew();
-        configureHomeButton();
-        setTitle(getString(R.string.label_my_courses));
+        if (!environment.getConfig().isTabsLayoutEnabled()) {
+            addDrawer();
+        } else {
+            addClickListenerOnProfileButton();
+        }
+        setTitle(R.string.label_my_courses);
         environment.getAnalyticsRegistry().trackScreenView(Analytics.Screens.MY_COURSES);
+    }
+
+    private void addClickListenerOnProfileButton() {
+        findViewById(R.id.profile_image).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                environment.getRouter().showUserProfile(MyCoursesListActivity.this, loginPrefs.getUsername());
+            }
+        });
+    }
+
+    @Override
+    protected void configureActionBar() {
+        ActionBar bar = getSupportActionBar();
+        if (bar != null) {
+            final boolean showHomeBtn = !environment.getConfig().isTabsLayoutEnabled();
+            bar.setDisplayShowHomeEnabled(showHomeBtn);
+            bar.setDisplayHomeAsUpEnabled(showHomeBtn);
+            bar.setIcon(android.R.color.transparent);
+        }
+    }
+
+    @Override
+    protected int getToolbarLayoutId() {
+        return environment.getConfig().isTabsLayoutEnabled() ?
+                R.layout.toolbar_with_profile_button :
+                R.layout.toolbar;
+    }
+
+    @Override
+    public void setTitle(int titleId) {
+        setTitle(getResources().getString(titleId));
+    }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        final View toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null) {
+            final View titleView = toolbar.findViewById(R.id.toolbar_custom_title);
+            if (titleView != null && titleView instanceof TextView) {
+                ((TextView) titleView).setText(title);
+                super.setTitle(null);
+                return;
+            }
+        }
+        super.setTitle(title);
     }
 
     private void initWhatsNew() {
