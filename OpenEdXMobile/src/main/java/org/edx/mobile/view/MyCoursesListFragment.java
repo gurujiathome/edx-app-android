@@ -13,6 +13,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.joanzapata.iconify.IconDrawable;
 import com.joanzapata.iconify.fonts.FontAwesomeIcons;
 
 import org.edx.mobile.R;
@@ -292,8 +293,12 @@ public class MyCoursesListFragment extends BaseFragment
         inflater.inflate(R.menu.my_courses, menu);
         final Config config = environment.getConfig();
         if (config.isTabsLayoutEnabled()) {
-            menu.findItem(R.id.menu_item_account).setVisible(true);
             menu.findItem(R.id.menu_item_search).setVisible(false);
+            menu.findItem(R.id.menu_item_account).setVisible(true);
+            menu.findItem(R.id.menu_item_account).setIcon(
+                    new IconDrawable(getContext(), FontAwesomeIcons.fa_gear)
+                            .colorRes(getContext(), R.color.white)
+                            .actionBarSize(getContext()));
         } else {
             menu.findItem(R.id.menu_item_account).setVisible(false);
             if (config.getCourseDiscoveryConfig().isCourseDiscoveryEnabled()) {
