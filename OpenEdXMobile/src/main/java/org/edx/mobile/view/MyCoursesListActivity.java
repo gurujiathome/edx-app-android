@@ -3,10 +3,12 @@ package org.edx.mobile.view;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
+import android.support.v7.widget.SearchView;
 import android.view.View;
 import android.widget.TextView;
 
@@ -33,7 +35,8 @@ import java.util.ArrayList;
 import de.greenrobot.event.EventBus;
 import roboguice.inject.InjectView;
 
-public class MyCoursesListActivity extends BaseSingleFragmentActivity {
+public class MyCoursesListActivity extends BaseSingleFragmentActivity implements
+                            MyCoursesListFragment.ToolbarCallbacks {
 
     @NonNull
     @InjectView(R.id.coordinator_layout)
@@ -66,7 +69,7 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
     }
 
     private void addClickListenerOnProfileButton() {
-        findViewById(R.id.profile_image).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.toolbar_profile_image).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 environment.getRouter().showUserProfile(MyCoursesListActivity.this, loginPrefs.getUsername());
@@ -89,7 +92,7 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
     protected int getToolbarLayoutId() {
         return environment.getConfig().isTabsLayoutEnabled() ?
                 R.layout.toolbar_with_profile_button :
-                R.layout.toolbar;
+                super.getToolbarLayoutId();
     }
 
     @Override
@@ -101,7 +104,7 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
     public void setTitle(CharSequence title) {
         final View toolbar = findViewById(R.id.toolbar);
         if (toolbar != null) {
-            final View titleView = toolbar.findViewById(R.id.toolbar_custom_title);
+            final View titleView = toolbar.findViewById(R.id.toolbar_title_view);
             if (titleView != null && titleView instanceof TextView) {
                 ((TextView) titleView).setText(title);
                 super.setTitle(null);
@@ -109,6 +112,26 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity {
             }
         }
         super.setTitle(title);
+    }
+
+    @Override
+    @Nullable
+    public SearchView getSearchView() {
+        final View searchView = findViewById(R.id.toolbar_search_view);
+        if (searchView != null && searchView instanceof SearchView) {
+            return (SearchView) searchView;
+        }
+        return null;
+    }
+
+    @Override
+    @Nullable
+    public TextView getTitleView() {
+        final View titleView = findViewById(R.id.toolbar_title_view);
+        if (titleView != null && titleView instanceof TextView) {
+            return (TextView) titleView;
+        }
+        return null;
     }
 
     private void initWhatsNew() {

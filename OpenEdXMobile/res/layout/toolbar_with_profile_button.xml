@@ -9,7 +9,7 @@
     android:theme="@style/MyToolbar">
 
     <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/profile_image"
+        android:id="@+id/toolbar_profile_image"
         style="@style/profile_image"
         android:layout_width="@dimen/courses_profile_icon_size"
         android:layout_height="@dimen/courses_profile_icon_size"
@@ -20,12 +20,27 @@
         tools:src="@drawable/profile_photo_placeholder" />
 
     <TextView
-        android:id="@+id/toolbar_custom_title"
+        android:id="@+id/toolbar_title_view"
         style="@style/MyActionBarTitleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/courses_title_text_left_margin"
         android:layout_marginStart="@dimen/courses_title_text_left_margin"
         tools:text="Screen title" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:animateLayoutChanges="true">
+
+        <android.support.v7.widget.SearchView
+            android:id="@+id/toolbar_search_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:visibility="gone"
+            android:layout_marginLeft="@dimen/courses_profile_icon_left_margin"
+            android:layout_marginStart="@dimen/courses_profile_icon_left_margin" />
+    </RelativeLayout>
 
 </android.support.v7.widget.Toolbar>

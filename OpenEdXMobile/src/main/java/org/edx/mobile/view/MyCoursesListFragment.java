@@ -3,15 +3,18 @@ package org.edx.mobile.view;
 import android.app.Activity;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.SearchView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.joanzapata.iconify.IconDrawable;
 import com.joanzapata.iconify.fonts.FontAwesomeIcons;
@@ -50,6 +53,18 @@ import de.greenrobot.event.EventBus;
 public class MyCoursesListFragment extends BaseFragment
         implements NetworkObserver, RefreshListener,
         LoaderManager.LoaderCallbacks<AsyncTaskResult<List<EnrolledCoursesResponse>>> {
+
+    private ToolbarCallbacks toolbarCallbacks;
+
+    /**
+     * The container Activity must implement this interface so the frag can communicate
+      */
+    public interface ToolbarCallbacks {
+        @Nullable
+        SearchView getSearchView();
+        @Nullable
+        TextView getTitleView();
+    }
 
     private static final int MY_COURSE_LOADER_ID = 0x905000;
 
@@ -218,6 +233,7 @@ public class MyCoursesListFragment extends BaseFragment
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        toolbarCallbacks = (ToolbarCallbacks) activity;
         if (activity instanceof NetworkSubject) {
             ((NetworkSubject) activity).registerNetworkObserver(this);
         }
@@ -318,12 +334,53 @@ public class MyCoursesListFragment extends BaseFragment
                 return true;
             }
             case R.id.menu_item_account: {
-                environment.getRouter().showAccountActivity(getActivity());
+//                environment.getRouter().showAccountActivity(getActivity());
+                //TODO: remove following code block after testing, (once LEARNER-3251 is done)
+                if (toolbarCallbacks.getSearchView().getVisibility() == View.VISIBLE) {
+                    hideSearchBar();
+                } else {
+                    showSearchBar();
+                }
                 return true;
             }
             default: {
                 return super.onOptionsItemSelected(item);
             }
         }
+    }
+
+    private void hideSearchBar() {
+        toolbarCallbacks.getSearchView().setVisibility(View.GONE);
+        toolbarCallbacks.getTitleView().setVisibility(View.VISIBLE);
+    }
+
+    //TODO: This function has to update once LEARNER-3251 is done
+    private void showSearchBar() {
+        final SearchView searchView = toolbarCallbacks.getSearchView();
+        searchView.setVisibility(View.VISIBLE);
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                searchView.onActionViewCollapsed();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean queryTextFocused) {
+                final TextView titleView = toolbarCallbacks.getTitleView();
+                if (queryTextFocused) {
+                    titleView.setVisibility(View.GONE);
+                } else {
+                    titleView.setVisibility(View.VISIBLE);
+                    searchView.onActionViewCollapsed();
+                }
+            }
+        });
     }
 }
