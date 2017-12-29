@@ -3,6 +3,7 @@ package org.edx.mobile.view;
 import android.app.Activity;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -14,8 +15,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.joanzapata.iconify.IconDrawable;
 import com.joanzapata.iconify.fonts.FontAwesomeIcons;
 
@@ -24,7 +28,9 @@ import org.edx.mobile.base.BaseFragment;
 import org.edx.mobile.core.IEdxEnvironment;
 import org.edx.mobile.databinding.FragmentMyCoursesListBinding;
 import org.edx.mobile.databinding.PanelFindCourseBinding;
+import org.edx.mobile.event.AccountDataLoadedEvent;
 import org.edx.mobile.event.EnrolledInCourseEvent;
+import org.edx.mobile.event.ProfilePhotoUpdatedEvent;
 import org.edx.mobile.exception.AuthException;
 import org.edx.mobile.http.HttpStatus;
 import org.edx.mobile.http.HttpStatusException;
@@ -37,8 +43,13 @@ import org.edx.mobile.loader.AsyncTaskResult;
 import org.edx.mobile.loader.CoursesAsyncLoader;
 import org.edx.mobile.logger.Logger;
 import org.edx.mobile.model.api.EnrolledCoursesResponse;
+import org.edx.mobile.model.api.ProfileModel;
 import org.edx.mobile.module.analytics.Analytics;
 import org.edx.mobile.module.prefs.LoginPrefs;
+import org.edx.mobile.user.Account;
+import org.edx.mobile.user.ProfileImage;
+import org.edx.mobile.user.UserAPI;
+import org.edx.mobile.user.UserService;
 import org.edx.mobile.util.Config;
 import org.edx.mobile.util.NetworkUtil;
 import org.edx.mobile.view.adapters.MyCoursesAdapter;
@@ -49,22 +60,11 @@ import java.util.List;
 import javax.inject.Inject;
 
 import de.greenrobot.event.EventBus;
+import retrofit2.Call;
 
 public class MyCoursesListFragment extends BaseFragment
         implements NetworkObserver, RefreshListener,
         LoaderManager.LoaderCallbacks<AsyncTaskResult<List<EnrolledCoursesResponse>>> {
-
-    private ToolbarCallbacks toolbarCallbacks;
-
-    /**
-     * The container Activity must implement this interface so the frag can communicate
-      */
-    public interface ToolbarCallbacks {
-        @Nullable
-        SearchView getSearchView();
-        @Nullable
-        TextView getTitleView();
-    }
 
     private static final int MY_COURSE_LOADER_ID = 0x905000;
 
@@ -79,12 +79,34 @@ public class MyCoursesListFragment extends BaseFragment
     @Inject
     private LoginPrefs loginPrefs;
 
+    @Inject
+    private UserService userService;
+
     private FullScreenErrorNotification errorNotification;
 
     private SnackbarErrorNotification snackbarErrorNotification;
 
     // Reason of usage: Helps in deciding if we want to show a full screen error or a SnackBar.
     private boolean isInitialServerCallDone = false;
+
+    private ProfileModel profile;
+
+    private ToolbarCallbacks toolbarCallbacks;
+
+    @Nullable
+    private Call<Account> getAccountCall;
+
+    /**
+     * The container Activity must implement this interface so the frag can communicate
+     */
+    public interface ToolbarCallbacks {
+        @Nullable
+        SearchView getSearchView();
+        @Nullable
+        TextView getTitleView();
+        @Nullable
+        ImageView getProfileView();
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -101,6 +123,10 @@ public class MyCoursesListFragment extends BaseFragment
                 environment.getRouter().showCourseDashboardTabs(getActivity(), environment.getConfig(), model, true);
             }
         };
+        if (environment.getConfig().isTabsLayoutEnabled()) {
+            profile = loginPrefs.getCurrentUserProfile();
+            sendGetUpdatedAccountCall();
+        }
         environment.getAnalyticsRegistry().trackScreenView(Analytics.Screens.MY_COURSES);
         EventBus.getDefault().register(this);
     }
@@ -139,6 +165,15 @@ public class MyCoursesListFragment extends BaseFragment
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         loadData(true);
+    }
+
+    public void sendGetUpdatedAccountCall() {
+        getAccountCall = userService.getAccount(profile.username);
+        getAccountCall.enqueue(new UserAPI.AccountDataUpdatedCallback(
+                getActivity(),
+                profile.username,
+                null, // Disable global loading indicator
+                null)); // No place to show an error notification
     }
 
     @Override
@@ -227,6 +262,9 @@ public class MyCoursesListFragment extends BaseFragment
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (null != getAccountCall) {
+            getAccountCall.cancel();
+        }
         EventBus.getDefault().unregister(this);
     }
 
@@ -334,13 +372,13 @@ public class MyCoursesListFragment extends BaseFragment
                 return true;
             }
             case R.id.menu_item_account: {
-//                environment.getRouter().showAccountActivity(getActivity());
+                environment.getRouter().showAccountActivity(getActivity());
                 //TODO: remove following code block after testing, (once LEARNER-3251 is done)
-                if (toolbarCallbacks.getSearchView().getVisibility() == View.VISIBLE) {
-                    hideSearchBar();
-                } else {
-                    showSearchBar();
-                }
+//                if (toolbarCallbacks.getSearchView().getVisibility() == View.VISIBLE) {
+//                    hideSearchBar();
+//                } else {
+//                    showSearchBar();
+//                }
                 return true;
             }
             default: {
@@ -382,5 +420,52 @@ public class MyCoursesListFragment extends BaseFragment
                 }
             }
         });
+    }
+
+    private void loadProfileImage(@NonNull ProfileImage profileImage, @NonNull ImageView imageView) {
+        if (profileImage.hasImage()) {
+            Glide.with(this)
+                    .load(profileImage.getImageUrlMedium())
+                    .into(imageView);
+        } else {
+            Glide.with(this)
+                    .load(R.drawable.profile_photo_placeholder)
+                    .into(imageView);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public void onEventMainThread(@NonNull ProfilePhotoUpdatedEvent event) {
+        if (!environment.getConfig().isTabsLayoutEnabled()) {
+            return;
+        }
+        final ImageView profileImage = toolbarCallbacks.getProfileView();
+        if (event.getUsername().equalsIgnoreCase(profile.username)) {
+            if (null == event.getUri()) {
+                Glide.with(this)
+                        .load(R.drawable.profile_photo_placeholder)
+                        .into(profileImage);
+            } else {
+                Glide.with(this)
+                        .load(event.getUri())
+                        .skipMemoryCache(true) // URI is re-used in subsequent events; disable caching
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .into(profileImage);
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public void onEventMainThread(@NonNull AccountDataLoadedEvent event) {
+        if (!environment.getConfig().isTabsLayoutEnabled()) {
+            return;
+        }
+        final Account account = event.getAccount();
+        if (account.getUsername().equalsIgnoreCase(profile.username)) {
+            final ImageView profileImage = toolbarCallbacks.getProfileView();
+            if (profileImage != null) {
+                loadProfileImage(account.getProfileImage(), profileImage);
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.inject.Inject;
@@ -130,6 +131,16 @@ public class MyCoursesListActivity extends BaseSingleFragmentActivity implements
         final View titleView = findViewById(R.id.toolbar_title_view);
         if (titleView != null && titleView instanceof TextView) {
             return (TextView) titleView;
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public ImageView getProfileView() {
+        final View profileView = findViewById(R.id.toolbar_profile_image);
+        if (profileView != null && profileView instanceof ImageView) {
+            return (ImageView) profileView;
         }
         return null;
     }
