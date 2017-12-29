@@ -123,9 +123,13 @@ public class MyCoursesListFragment extends BaseFragment
                 environment.getRouter().showCourseDashboardTabs(getActivity(), environment.getConfig(), model, true);
             }
         };
-        if (environment.getConfig().isTabsLayoutEnabled()) {
+        final boolean isUserProfileEnabled = environment.getConfig().isUserProfilesEnabled();
+        if (environment.getConfig().isTabsLayoutEnabled() && isUserProfileEnabled) {
             profile = loginPrefs.getCurrentUserProfile();
             sendGetUpdatedAccountCall();
+        }
+        if (!isUserProfileEnabled) {
+            toolbarCallbacks.getProfileView().setVisibility(View.GONE);
         }
         environment.getAnalyticsRegistry().trackScreenView(Analytics.Screens.MY_COURSES);
         EventBus.getDefault().register(this);
@@ -436,7 +440,7 @@ public class MyCoursesListFragment extends BaseFragment
 
     @SuppressWarnings("unused")
     public void onEventMainThread(@NonNull ProfilePhotoUpdatedEvent event) {
-        if (!environment.getConfig().isTabsLayoutEnabled()) {
+        if (!environment.getConfig().isTabsLayoutEnabled() || !environment.getConfig().isUserProfilesEnabled()) {
             return;
         }
         final ImageView profileImage = toolbarCallbacks.getProfileView();
@@ -457,7 +461,7 @@ public class MyCoursesListFragment extends BaseFragment
 
     @SuppressWarnings("unused")
     public void onEventMainThread(@NonNull AccountDataLoadedEvent event) {
-        if (!environment.getConfig().isTabsLayoutEnabled()) {
+        if (!environment.getConfig().isTabsLayoutEnabled() || !environment.getConfig().isUserProfilesEnabled()) {
             return;
         }
         final Account account = event.getAccount();
