@@ -85,12 +85,12 @@ public abstract class BaseFragmentActivity extends BaseAppActivity
         configureActionBar();
     }
 
-    protected void setToolbar() {
+    protected void setToolbarAsActionBar() {
         final View toolbar = findViewById(R.id.toolbar);
         if (toolbar != null && toolbar instanceof Toolbar) {
             setSupportActionBar((Toolbar) toolbar);
+            configureActionBar();
         }
-        configureActionBar();
     }
 
     protected void configureActionBar() {

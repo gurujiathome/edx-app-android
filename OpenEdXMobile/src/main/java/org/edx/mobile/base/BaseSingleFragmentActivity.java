@@ -41,7 +41,7 @@ public abstract class BaseSingleFragmentActivity extends BaseFragmentActivity im
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single_fragment_base);
         addToolbar();
-        super.setToolbar();
+        super.setToolbarAsActionBar();
     }
 
     private void addToolbar() {

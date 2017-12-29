@@ -73,7 +73,7 @@ public abstract class BaseWebViewFindCoursesActivity extends BaseFragmentActivit
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        super.setToolbar();
+        super.setToolbarAsActionBar();
         webView = (EdxWebView) findViewById(R.id.webview);
         progressWheel = (ProgressBar) findViewById(R.id.loading_indicator);
         errorNotification = new FullScreenErrorNotification(webView);

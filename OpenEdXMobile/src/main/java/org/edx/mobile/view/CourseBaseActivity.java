@@ -73,7 +73,7 @@ public abstract  class CourseBaseActivity  extends BaseFragmentActivity
     @Override
     protected void onCreate(Bundle arg0) {
         super.onCreate(arg0);
-        super.setToolbar();
+        super.setToolbarAsActionBar();
         errorNotification = new FullScreenErrorNotification(contentLayout);
         snackbarErrorNotification = new SnackbarErrorNotification(contentLayout);
 
