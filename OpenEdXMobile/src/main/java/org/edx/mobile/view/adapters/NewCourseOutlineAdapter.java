@@ -51,6 +51,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import static org.edx.mobile.view.adapters.NewCourseOutlineAdapter.SectionRow.NUM_OF_NON_COURSEWARE_SECTIONS;
+
 public class NewCourseOutlineAdapter extends BaseAdapter {
 
     private final Logger logger = new Logger(getClass().getName());
@@ -76,8 +78,8 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
     private DownloadListener downloadListener;
     private boolean isVideoMode;
 
-    public NewCourseOutlineAdapter(Context context, EnrolledCoursesResponse courseData,
-                                   IEdxEnvironment environment, NewCourseOutlineAdapter.DownloadListener listener,
+    public NewCourseOutlineAdapter(final Context context, final EnrolledCoursesResponse courseData,
+                                   final IEdxEnvironment environment, NewCourseOutlineAdapter.DownloadListener listener,
                                    boolean isVideoMode, boolean isOnCourseOutline) {
         this.context = context;
         this.environment = environment;
@@ -91,6 +93,16 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
         adapterData = new ArrayList();
         if (isOnCourseOutline && !isVideoMode) {
             adapterData.add(new SectionRow(SectionRow.COURSE_CARD, null));
+            // Add certificate item
+            if (courseData.isCertificateEarned() && environment.getConfig().areCertificateLinksEnabled()) {
+                adapterData.add(new SectionRow(SectionRow.COURSE_CERTIFICATE, null,
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                environment.getRouter().showCertificate(context, courseData);
+                            }
+                        }));
+            }
         }
     }
 
@@ -155,6 +167,11 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
                 }
                 return getCardView(convertView);
             }
+            case SectionRow.COURSE_CERTIFICATE:
+                if (convertView == null) {
+                    convertView = inflater.inflate(R.layout.row_course_dashboard_cert, parent, false);
+                }
+                return getCertificateView(position, convertView);
             case SectionRow.LAST_ACCESSED_ITEM: {
                 if (convertView == null) {
                     convertView = inflater.inflate(R.layout.row_last_accessed, parent, false);
@@ -207,19 +224,23 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
      * Clear all the course outline rows.
      */
     private void clearCourseOutlineData() {
-        if (adapterData.isEmpty()) return;
-
-        int startIndex = 0;
-        // If data for course card is available on the first index, we don't want that cleared
-        if (adapterData.size() >= 1 && adapterData.get(0).type == SectionRow.COURSE_CARD) {
-            startIndex++;
+        if (adapterData.isEmpty()) {
+            return;
         }
-        // If data for last accessed component is available on the second index, we don't want that cleared
-        if (adapterData.size() >= 2 && adapterData.get(1).type == SectionRow.LAST_ACCESSED_ITEM) {
-            startIndex++;
+        // Get index of first courseware row
+        int firstCoursewareRowIndex = -1;
+        int i = 0;
+        for (SectionRow sectionRow : adapterData) {
+            if (sectionRow.isCoursewareRow()) {
+                firstCoursewareRowIndex = i;
+                break;
+            }
+            i++;
         }
-        // Selectively clear adapter's data from a specific index onwards.
-        adapterData.subList(startIndex, adapterData.size()).clear();
+        if (firstCoursewareRowIndex >= 0) {
+            // Selectively clear adapter's data from a specific index onwards.
+            adapterData.subList(firstCoursewareRowIndex, adapterData.size()).clear();
+        }
     }
 
     /**
@@ -228,19 +249,15 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
      * @return <code>true</code> if there are course items, <code>false</code> otherwise.
      */
     public boolean hasCourseData() {
-        if (adapterData.isEmpty()) return false;
-
-        int rowsToIgnore = 0;
-        // If data for course card is available on the first index, we need to skip it
-        if (adapterData.size() >= 1 && adapterData.get(0).type == SectionRow.COURSE_CARD) {
-            rowsToIgnore++;
+        if (adapterData.isEmpty()) {
+            return false;
         }
-        // If data for last accessed component is available on the second index, we need to skip it
-        if (adapterData.size() >= 2 && adapterData.get(1).type == SectionRow.LAST_ACCESSED_ITEM) {
-            rowsToIgnore++;
+        for (SectionRow sectionRow : adapterData) {
+            if (sectionRow.isCoursewareRow()) {
+                return true;
+            }
         }
-        // Means we have atleast 1 courseware item other than the course card and last accessed item
-        return adapterData.size() > rowsToIgnore;
+        return false;
     }
 
     public void reloadData() {
@@ -571,6 +588,12 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
         return view;
     }
 
+    private View getCertificateView(int position, View convertView) {
+        final SectionRow sectionRow = getItem(position);
+        convertView.findViewById(R.id.button_layout).setOnClickListener(sectionRow.clickListener);
+        return convertView;
+    }
+
     private View getLastAccessedView(int position, View convertView) {
         final SectionRow sectionRow = getItem(position);
         final TextView lastAccessTextView = (TextView) convertView.findViewById(R.id.last_accessed_text);
@@ -587,14 +610,58 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
      * @param onClickListener       The listener to invoke when the `view` button is pressed.
      */
     public void addLastAccessedView(CourseComponent lastAccessedComponent, View.OnClickListener onClickListener) {
+        final int lastAccessedItemPlace = getNonCourseWareItemPlace(SectionRow.LAST_ACCESSED_ITEM);
         // Update the last accessed item, if its already there in the list
-        if (adapterData.size() >= 2 && adapterData.get(1).type == SectionRow.LAST_ACCESSED_ITEM) {
-            adapterData.set(1, new SectionRow(SectionRow.LAST_ACCESSED_ITEM, lastAccessedComponent, onClickListener));
+        if (lastAccessedItemPlace >= 0) {
+            adapterData.set(lastAccessedItemPlace, new SectionRow(SectionRow.LAST_ACCESSED_ITEM, lastAccessedComponent, onClickListener));
         } else {
             // Add it otherwise
-            adapterData.add(1, new SectionRow(SectionRow.LAST_ACCESSED_ITEM, lastAccessedComponent, onClickListener));
+            adapterData.add(getLastAccessedItemPlace(), new SectionRow(SectionRow.LAST_ACCESSED_ITEM, lastAccessedComponent, onClickListener));
         }
         notifyDataSetChanged();
+    }
+
+    /**
+     * Tells the appropriate place for a LAST_ACCESSED_ITEM to put in the adapters list.
+     *
+     * @return list index (non-negative number) for a LAST_ACCESSED_ITEM.
+     */
+    public int getLastAccessedItemPlace() {
+        return isNonCourseWareItemExist(SectionRow.COURSE_CERTIFICATE) ? 2 : 1;
+    }
+
+    /**
+     * Tells if specified non-courseware item exist in adapter list or not.
+     *
+     * @param sectionType A non-courseware section type whose existence needs to be checked.
+     * @return <code>true</code> if specified non-courseware item exist in adapter list,
+     * <code>false</code> otherwise.
+     */
+    public boolean isNonCourseWareItemExist(int sectionType) {
+        return getNonCourseWareItemPlace(sectionType) >= 0;
+    }
+
+    /**
+     * Tells the place of a non-courseware item exist in adapter list.
+     *
+     * @param sectionType A non-courseware section type whose place needs to be identified.
+     * @return list index (non-negative number) of a specified non-courseware item, -1 in case item
+     * doesn't exist.
+     */
+    public int getNonCourseWareItemPlace(int sectionType) {
+        if (adapterData.isEmpty()) {
+            return -1;
+        }
+        final int listSize = adapterData.size();
+        for (int i = 0; i < NUM_OF_NON_COURSEWARE_SECTIONS; i++) {
+            if (i >= listSize) {
+                break;
+            }
+            if (adapterData.get(i).type == sectionType) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public ViewHolder getTag(View convertView) {
@@ -642,12 +709,16 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
     }
 
     public static class SectionRow {
-        public static final int ITEM = 0;
-        public static final int SECTION = 1;
-        public static final int COURSE_CARD = 2;
-        public static final int LAST_ACCESSED_ITEM = 3;
+        public static final int COURSE_CARD = 0;
+        public static final int COURSE_CERTIFICATE = 1;
+        public static final int LAST_ACCESSED_ITEM = 2;
+        public static final int SECTION = 3;
+        public static final int ITEM = 4;
+
         // Update this count according to the section types mentioned above
-        public static final int NUM_OF_SECTION_ROWS = 4;
+        public static final int NUM_OF_SECTION_ROWS = 5;
+        // This count shows the number of possible non-courseware section items
+        public static final int NUM_OF_NON_COURSEWARE_SECTIONS = 3;
 
         public final int type;
         public final boolean topComponent;
@@ -671,6 +742,11 @@ public class NewCourseOutlineAdapter extends BaseAdapter {
             this.topComponent = topComponent;
             this.component = component;
             this.clickListener = listener;
+        }
+
+        public boolean isCoursewareRow() {
+            return this.type == ITEM ||
+                    this.type == SECTION;
         }
     }
 
